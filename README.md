@@ -54,9 +54,20 @@ ex <- as.data.frame(ex)
 
 exp <- ex %>% mutate(probe_id=rownames(ex)) %>% inner_join(ids,by="probe_id") %>% 
   dplyr::select(probe_id, symbol,everything()) ### everything() 加括号
-exp <- exp[!duplicated(exp$symbol),] 
-rownames(exp) <- exp$symbol 
-exp <- exp[,-(1:2)]
+
+## 去平均值最大的那个探针作为对应symbol的信息 
+exp1_max <- exp %>%
+  group_by(symbol) %>%
+  slice_max(
+    order_by = rowMeans(across(where(is.numeric))),  # 按所有数值列平均排序
+    with_ties = FALSE                                # 只保留最大的一行
+  ) %>%
+  ungroup() |>
+  as.data.frame()
+
+rownames(exp1_max) <- exp1_max$symbol
+exp1_max <- exp1_max[,-c(1:2)]
+
 ```
 
 有一种情况，可能因为微阵列的数据比较久远，对应平台的注释文件在`biomanager`下载不到，但是GEO数据库本身其实提供了微阵列数据的注释信息。
